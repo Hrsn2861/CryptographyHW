@@ -118,7 +118,7 @@ void display(bool subkeys[16][48]) {
 
 void display(char *seq, int length) {
     for(int i=0;i<length;i++) {
-        cout << (int)seq[i] << " ";
+        cout << (char)seq[i];
     }
     cout << endl;
 }
@@ -131,57 +131,49 @@ void display(bool* byte, int length) {
     cout << endl;
 }
 
-class DES
-{
-private:
-    /* data */
-    void createSubKey(char keyWord[8]);
-    void shiftLeft(bool *key, int length, int size);
-    void Transform(bool *subKey, bool *mainKey,const int *changeTable, int size);
-    void run(char *plainChar, char *cipherChar, bool isEncrypt);
-    void char2byte(bool *out, const char *in, int size);
-    void byte2char(char *out, const bool *in, int size);
-    void F_function(bool in[32], bool ki[48]);
-    void S_function(bool out[32], bool in[48]);
-    void Xor(bool *out, bool *in, int size);
-    void generateRandKey();
-public:
-    DES();
-    ~DES();
-    string plaintext = "";
-    string ciphertext = "";
-    char keyword[8];
-    bool SubKey[16][48];
+void createSubKey(char keyWord[8]);
+void shiftLeft(bool *key, int length, int size);
+void Transform(bool *subKey, bool *mainKey,const int *changeTable, int size);
+void run(char *plainChar, char *cipherChar, bool isEncrypt);
+void char2byte(bool *out, const char *in, int size);
+void byte2char(char *out, const bool *in, int size);
+void F_function(bool in[32], bool ki[48]);
+void S_function(bool out[32], bool in[48]);
+void Xor(bool *out, bool *in, int size);
+void generateRandKey(bool isRandom);
+string plaintext = "";
+string ciphertext = "";
+char keyword[8];
+bool SubKey[16][48];
 
-    string Encrypt(string plain) {
-        plaintext = plain;
-        ciphertext = "";
-        char plainChar[12];
-        char cipherChar[12];
-        for(int i=0;i<plain.size();i+=8) {
-            strcpy(plainChar, plain.substr(i, 8).c_str());
-            memset(cipherChar, 0, sizeof(plainChar));
-            run(plainChar, cipherChar, true);
-            ciphertext += cipherChar;
-        }
-        return ciphertext;
+string Encrypt(string plain) {
+    plaintext = plain;
+    ciphertext = "";
+    char plainChar[12];
+    char cipherChar[12];
+    for(int i=0;i<plain.size();i+=8) {
+        strcpy(plainChar, plain.substr(i, 8).c_str());
+        memset(cipherChar, 0, sizeof(plainChar));
+        run(plainChar, cipherChar, true);
+        ciphertext += cipherChar;
     }
+    return ciphertext;
+}
 
-    string Decrypt(string cipher) {
-        plaintext = "";
-        char plainChar[12];
-        char cipherChar[12];
-        for(int i=0;i<cipher.size();i+=8) {
-            strcpy(cipherChar, cipher.substr(i, 8).c_str());
-            memset(plainChar, 0, sizeof(cipherChar));
-            run(cipherChar, plainChar, false);
-            plaintext += plainChar;
-        }
-        return plaintext;
+string Decrypt(string cipher) {
+    plaintext = "";
+    char plainChar[12];
+    char cipherChar[12];
+    for(int i=0;i<cipher.size();i+=8) {
+        strcpy(cipherChar, cipher.substr(i, 8).c_str());
+        memset(plainChar, 0, sizeof(cipherChar));
+        run(cipherChar, plainChar, false);
+        plaintext += plainChar;
     }
-};
+    return plaintext;
+}
 
-void DES::run(char in[8], char out[8], bool isEncrypt) {
+void run(char in[8], char out[8], bool isEncrypt) {
     static bool M[64], buffer[32];
     static bool *Li = &M[0];
     static bool *Ri = &M[32];
@@ -194,8 +186,18 @@ void DES::run(char in[8], char out[8], bool isEncrypt) {
             Xor(Ri, Li, 32);
             memcpy(Li, buffer, 32);
         }
+        for (int i=0;i<32;i++) {
+            bool temp=M[i];
+            M[i]=M[i+32];
+            M[i+32]=temp;
+        }
     }
     else {
+        for (int i=0;i<32;i++) {
+            bool temp=M[i];
+            M[i]=M[i+32];
+            M[i+32]=temp;
+        }
         for(int i=15;i>=0;i--) {
             memcpy(buffer, Li, 32);
             F_function(Li, SubKey[i]);
@@ -207,14 +209,14 @@ void DES::run(char in[8], char out[8], bool isEncrypt) {
     byte2char(out, M, 64);
 }
 
-void DES::byte2char(char *out, const bool *in, int size) {
+void byte2char(char *out, const bool *in, int size) {
     memset(out, 0, (size+7)/8);
     for(int i=0;i<size;i++) {
         out[i/8] |= in[i] << (i % 8);
     }
 }
 
-void DES::F_function(bool in[32], bool ki[32]) {
+void F_function(bool in[32], bool ki[32]) {
     static bool T[48];
     Transform(T, in, MessageExpansionTable, 48);
     Xor(T, ki, 48);
@@ -222,7 +224,7 @@ void DES::F_function(bool in[32], bool ki[32]) {
     Transform(in, in, RightSubMessagePermutation, 32);
 }
 
-void DES::S_function(bool out[32], bool in[48]) {
+void S_function(bool out[32], bool in[48]) {
     int j;
     char m, n, num;
     for(j=0;j<8;j++,in+=6,out+=4) {
@@ -233,19 +235,19 @@ void DES::S_function(bool out[32], bool in[48]) {
     }
 }
 
-void DES::Xor(bool *out, bool *in, int size) {
+void Xor(bool *out, bool *in, int size) {
     for(int i=0;i<size;i++) {
         out[i] ^= in[i];
     }
 }
 
-void DES::char2byte(bool *out, const char *in, int size) {
+void char2byte(bool *out, const char *in, int size) {
     for(int i=0;i<size;i++) {
         out[i] = (in[i/8]>>(i%8))&1;
     }
 }
 
-void DES::Transform(bool *subKey, bool *mainKey, const int *changeTable, int size) {
+void Transform(bool *subKey, bool *mainKey, const int *changeTable, int size) {
     static bool buffer[256];
     for(int i=0;i<size;i++) {
         buffer[i] = mainKey[changeTable[i]-1];
@@ -253,14 +255,14 @@ void DES::Transform(bool *subKey, bool *mainKey, const int *changeTable, int siz
     memcpy(subKey, buffer, size);
 }
 
-void DES::shiftLeft(bool *key, int length, int size) {
+void shiftLeft(bool *key, int length, int size) {
     static bool buffer[256];
     memcpy(buffer, key, size);
     memcpy(key, key+size, length-size);
     memcpy(key+length-size, buffer, size);
 }
 
-void DES::createSubKey(char keyWord[8]) {
+void createSubKey(char keyWord[8]) {
     char keys[8];
     for(int i=0;i<8;i++) {
         keys[i] = keyWord[i];
@@ -277,36 +279,59 @@ void DES::createSubKey(char keyWord[8]) {
     }
 }
 
-void DES::generateRandKey() {
+void generateRandKey(bool isRandom) {
     srand((unsigned)time(NULL));
-    for(int i=0;i<8;i++) {
-        keyword[i] = rand() % 25 + 'a';
+    if(isRandom) {
+        for(int i=0;i<8;i++) {
+            keyword[i] = rand() % 26 + 'a';
+        }
+    }
+    else {
+        for(int i=0;i<8;i++) {
+            keyword[i] = 'a';
+        }
     }
 }
 
-DES::DES(){
-    generateRandKey();
+void init(bool isRandom) {
+    generateRandKey(isRandom);
     createSubKey(keyword);
 }
 
-DES::~DES(){ }
+const char* lut = "0123456789abcdefg";
 
-int main(int argc, char const *argv[])
-{
-    DES des;
-    string s = "";
-    display(des.keyword, 8);
-    cout << des.keyword << endl;
-    char *input = new char [10485760];
-    for(int i=0;i<10485760;i++) 
-        input[i] = 'a';
+void displayAsHex(string s) {
+    for(int i=0;i<s.size();i++) {
+        uint8_t buf = s[i];
+        cout << lut[((buf >> 4) & 0xf)] << lut[(buf & 0xf)];
+    }
+    cout << endl;
+}
 
-    clock_t start = clock();
-    (s = des.Encrypt(input));
-    clock_t end = clock();
-    double endtime = (double) (end - start) / (CLOCKS_PER_SEC);
+int main(int argc, char const *argv[]) {
+    init(false);
+    int size = atoi(argv[1]);
+    if(size == 0) {
+        const char* input = argv[2];
+        cout << "key is: "; display(keyword, 8);
+        cout << "input string is: " << input << endl;
+        string s = Encrypt(input);
+        cout << "Encrypt hex string is: ";
+        displayAsHex(s);
+        cout << "Decrypt string is: " << Decrypt(s) << endl;
+        return 0;
+    }
+    else {
+        char* input = new char[size];
+        for(int i=0;i<size;i++) {
+            input[i] = rand() % 26 + 'a';
+        }
 
-    cout << endtime << endl;
-    // cout << des.Decrypt(s) << endl;
-    return 0;
+        double start = clock();
+        string s = Encrypt(input);
+        double end = clock();
+
+        cout << ((end - start) / CLOCKS_PER_SEC) << endl;
+        return 0;
+    }
 }

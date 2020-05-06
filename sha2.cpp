@@ -35,7 +35,7 @@ char* padMessage(const char* s, __uint32_t &l) {
 	return t;
 }
 
-__uint32_t rRotate(const __uint32_t& t, const __uint32_t &f) {          // right rotate
+__uint32_t rRotate(__uint32_t t, __uint32_t f) {          // right rotate
     return (t >> f) | (t << (32 - f));
 }
 

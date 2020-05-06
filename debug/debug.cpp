@@ -1,10 +1,10 @@
 #include <bits/stdc++.h>
+using namespace std;
+static const int endianTest = 1;
+#define IsLittleEndian() (*(char *)&endianTest == 1)
 
 int main(int argc, char const *argv[])
 {
-    int a = 1 + 2
-            + 3 + 4
-            + 5 + 6;
-    std::cout << a << std::endl;
+    cout << 100 / 64 * 64 << endl;
     return 0;
 }

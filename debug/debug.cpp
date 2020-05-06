@@ -5,6 +5,6 @@ static const int endianTest = 1;
 
 int main(int argc, char const *argv[])
 {
-    cout << 100 / 64 * 64 << endl;
+    cout << IsLittleEndian() << endl;
     return 0;
 }

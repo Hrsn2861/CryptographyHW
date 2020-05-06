@@ -2,10 +2,10 @@
 
 using namespace std;
 
-__uint32_t H[8], G[8];
-__uint32_t w[68], w_buf[64];
+uint32_t H[8], G[8];
+uint32_t w[68], w_buf[64];
 
-__uint32_t T(int i) {
+uint32_t T(int i) {
     if (i >= 0 && i <= 15)
 		return 0x79CC4519;
 	else if (i >= 16 && i <= 63)
@@ -14,10 +14,10 @@ __uint32_t T(int i) {
 		return -1;
 }
 
-__uint32_t* reverse(__uint32_t *s) {
-    __uint8_t* byte;
-    __uint8_t buf;
-    byte = (__uint8_t*) s;
+uint32_t* reverse(uint32_t *s) {
+    uint8_t* byte;
+    uint8_t buf;
+    byte = (uint8_t*) s;
 
     buf = byte[0];
     byte[0] = byte[3];
@@ -30,7 +30,7 @@ __uint32_t* reverse(__uint32_t *s) {
     return s;
 }
 
-__uint32_t FF(__uint32_t x, __uint32_t y, __uint32_t z, int i) {
+uint32_t FF(uint32_t x, uint32_t y, uint32_t z, int i) {
     if (i >= 0 && i <= 15)
 		return x ^ y ^ z;
 	else if (i >= 16 && i <= 63)
@@ -39,7 +39,7 @@ __uint32_t FF(__uint32_t x, __uint32_t y, __uint32_t z, int i) {
         return 0;
 }
 
-__uint32_t GG(__uint32_t x, __uint32_t y, __uint32_t z, int i) {
+uint32_t GG(uint32_t x, uint32_t y, uint32_t z, int i) {
     if (i >= 0 && i <= 15)
 		return x ^ y ^ z;
 	else if (i >= 16 && i <= 63)
@@ -48,15 +48,15 @@ __uint32_t GG(__uint32_t x, __uint32_t y, __uint32_t z, int i) {
 		return 0;
 }
 
-__uint32_t lRotate(__uint32_t x, __uint32_t f) {
+uint32_t lRotate(uint32_t x, uint32_t f) {
     return (x) << (f) | (x) >> (32 - (f));
 }
 
-__uint32_t P0(__uint32_t x) {
+uint32_t P0(uint32_t x) {
     return x ^ lRotate(x, 9) ^ lRotate(x, 17);
 }
 
-__uint32_t P1(__uint32_t x) {
+uint32_t P1(uint32_t x) {
     return x ^ lRotate(x, 15) ^ lRotate(x, 23);
 }
 
@@ -65,15 +65,15 @@ void initH() {
 	H[4] = 0xA96F30BC, H[5] = 0x163138AA, H[6] = 0xE38DEE4D, H[7] = 0xB0FB0E4E;
 }
 
-char* processString(const char *s) {
+void processString(const char *s) {
     for(int i=0;i<16;i++) {
-        w[i] = *(__uint32_t*) (s + i * 4);
+        w[i] = *(uint32_t*) (s + i * 4);
         reverse(w+i);
     }
 
     for(int i=16;i<68;i++) {
-        __uint32_t t = w[i-16] ^ w[i-9] ^ lRotate(w[i-3], 15);
-        w[i] = t ^ lRotate(w[i-15], 7) ^ w[i-6];
+        uint32_t t = w[i-16] ^ w[i-9] ^ lRotate(w[i-3], 15);
+        w[i] = P1(t) ^ lRotate(w[i-13], 7) ^ w[i-6];
     }
     for(int i=0;i<64;i++) {
         w_buf[i] = w[i] ^ w[i+4];
@@ -82,7 +82,7 @@ char* processString(const char *s) {
     G[0] = H[0]; G[1] = H[1]; G[2] = H[2]; G[3] = H[3];
     G[4] = H[4]; G[5] = H[5]; G[6] = H[6]; G[7] = H[7];
 
-    __uint32_t s1, s2, t1, t2;
+    uint32_t s1, s2, t1, t2;
 
     for(int i=0;i<64;i++) {
         s1 = lRotate((lRotate(G[0], 12) + G[4] + lRotate(T(i), i)), 7);
@@ -101,32 +101,34 @@ char* processString(const char *s) {
 
     H[0] ^= G[0]; H[1] ^= G[1]; H[2] ^= G[2]; H[3] ^= G[3];
     H[4] ^= G[4]; H[5] ^= G[5]; H[6] ^= G[6]; H[7] ^= G[7];
+
 }
 
 char* sm3(const char* s) {
     initH();
     int length = strlen(s);
     char* buf = new char[length];
-    for(int i=0;i<length-64;i+=64) {
-        memcpy(buf, s+i, 64);
+    uint32_t i;
+    for(i=0;i<length/64;i++) {
+        memcpy(buf, s+i*64, 64);
         processString(buf);
     }
 
     unsigned int remain = length % 64;
-    unsigned int bitlen = length >> 3;
+    unsigned int bitlen = length * 8;
     reverse(&bitlen);
-    memcpy(buf, s + (length / 64 * 64), remain);
+    memcpy(buf, s + i * 64, remain);
     buf[remain] = 0x80;
 
-    if(remain < 56) {
-        memset(buf+remain, 0, 64-remain);
+    if(remain <= 55) {
+        memset(buf+remain+1, 0, 59-remain);
         memcpy(buf+60, &bitlen, 4);
         processString(buf);
     }
     else {
-        memset(buf+remain+1, 0, 64-remain-1);
+        memset(buf+remain+1, 0, 63-remain);
         processString(buf);
-        memset(buf, 0, 64-4);
+        memset(buf, 0, 60);
         memcpy(buf+60, &bitlen, 4);
         processString(buf);
     }
@@ -144,10 +146,10 @@ char ans[64];
 char* sm3_run(const char* s) {
     char* r = sm3(s);
     for(int i=0;i<32;i++) {
-        unsigned char buf = r[i ^ 3] & 0xff;
-		ans[i << 1] = lut[buf >> 4];
-		ans[i << 1 | 1] = lut[buf & 0xf];
+        ans[i*2] = lut[(r[i] >> 4) & 0xf];
+        ans[i*2 + 1] = lut[r[i] & 0xf];
     }
+
     return ans;
 }
 

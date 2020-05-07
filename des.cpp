@@ -162,10 +162,23 @@ string Encrypt(string plain) {
     ciphertext = "";
     char plainChar[12];
     char cipherChar[12];
+    memset(cipherChar, 0, sizeof(cipherChar));
     for(int i=0;i<plain.size();i+=8) {
-        strcpy(plainChar, plain.substr(i, 8).c_str());
-        memset(cipherChar, 0, sizeof(plainChar));
+        if(plain.size() - i  >= 8)
+            strcpy(plainChar, plain.substr(i, 8).c_str());
+        else {
+            for(int j=0;j<8;j++) plainChar[j] = ' ';
+            strcpy(plainChar, plain.substr(i, plain.size()-i).c_str());
+        }
+
+        // cout << "plaichar before run : "; display(plainChar, 8);
+        // cout << "cipherchar before run: "; display(cipherChar, 8);
+        for(int j=0;j<8;j++) plainChar[j] ^= cipherChar[j];
+        // memset(cipherChar, 0, sizeof(plainChar));
+        
         run(plainChar, cipherChar, true);
+        // cout << "plainchar after run"; display(plainChar, 8);
+        // cout << "cipherchar after run"; display(cipherChar, 8);
         ciphertext += cipherChar;
     }
     return ciphertext;
@@ -176,9 +189,16 @@ string Decrypt(string cipher) {
     char plainChar[12];
     char cipherChar[12];
     for(int i=0;i<cipher.size();i+=8) {
-        strcpy(cipherChar, cipher.substr(i, 8).c_str());
-        memset(plainChar, 0, sizeof(cipherChar));
+        if(cipher.size() - i >= 8)
+            strcpy(cipherChar, cipher.substr(i, 8).c_str());
+        else {
+            for(int j=0;j<8;j++) cipherChar[j] = ' ';
+            strcpy(cipherChar, cipher.substr(i, cipher.size()-1).c_str());
+        }
+        // for(int j=0;j<8;j++) cipherChar[j] ^= plainChar[j];
+        // memset(plainChar, 0, sizeof(cipherChar));
         run(cipherChar, plainChar, false);
+        
         plaintext += plainChar;
     }
     return plaintext;
@@ -326,10 +346,10 @@ int main(int argc, char const *argv[]) {
         const char* input = argv[2];
         cout << "key is: "; display(keyword, 8);
         cout << "input string is: " << input << endl;
-        string s = Encrypt(input);
+        string s = Encrypt(input).substr(0, strlen(input));
         cout << "Encrypt hex string is: ";
         displayAsHex(s);
-        cout << "Decrypt string is: " << Decrypt(s) << endl;
+        cout << "Decrypt string is: " << Decrypt(s).substr(0, strlen(input)) << endl;
         return 0;
     }
     else {
